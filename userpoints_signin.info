@@ -1,0 +1,6 @@
+name = Userpoints Signin
+description = Users earn points for Signin.
+package = Userpoints
+dependencies[] = userpoints
+core = 7.x
+configure = admin/config/people/userpoints/settings

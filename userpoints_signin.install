@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the userpoints_signin menu module.
+ */
+
+/**
+ *  Implements hook_uninstall().
+ */
+function userpoints_signin_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'userpoints_signin%'");
+}
+
+
+/**
+ *  Implements hook_schema().
+ */
+function userpoints_signin_schema() {
+  $schema = array();
+
+  $schema['userpoints_signin'] = array(
+  'description' => 'Records userpoints signins.',
+    'fields' => array(
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+        'description' => "User's {users}.uid."
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'default' => 0,
+        'not null' => TRUE,
+        'description' => 'The timestamp of when the user was last awarded points for signining in.',
+      ),
+    ),
+    'primary key' => array('uid'),
+  );
+
+  return $schema;
+}

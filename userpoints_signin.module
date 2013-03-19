@@ -1,0 +1,166 @@
+<?php
+
+/**
+ * @file
+ * The Userpoints signin module.
+ */
+
+/**
+ * The variable name for the number of points to award for signing in.
+ */
+define('USERPOINTS_SIGNIN', 'userpoints_signin');
+
+/**
+ * The variable name for the number of points to award for signing in continuous.
+ */
+define('USERPOINTS_SIGNIN_CONTINUOUS', 'userpoints_signin_continuous');
+
+/**
+ * The variable name for the taxonomy to assign signin userpoints to.
+ */
+define('USERPOINTS_SIGNIN', 'userpoints_signin_tid');
+
+/**
+ *  Implements hook_permission().
+ */
+function userpoints_signin_permission() {
+  return array(
+    'earn signin points' => array(
+      'title' => t('Earn signin points'),
+    ),
+  );
+}
+
+/**
+ *  Implements hook_userpoints().
+ */
+function userpoints_signin_userpoints($op = 'setting', $params = array()) {
+  if ($op == 'setting') {
+      $group = 'userpoints_signin';
+      $form[$group] = array(
+        '#type'        => 'fieldset',
+        '#collapsible' => TRUE,
+        '#collapsed'   => TRUE,
+        '#title'       => t('Signin'),
+        '#description' => t('!Points for user sign in', userpoints_translation()),
+        '#group'       => 'settings_additional',
+        '#weight'      => 48,
+      );
+      $form[$group][USERPOINTS_SIGNIN] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('!Points for user sign in', userpoints_translation()),
+        '#default_value' => variable_get(USERPOINTS_SIGNIN, 0),
+        '#size'          => 5,
+        '#maxlength'     => 5,
+      );
+      $form[$group][USERPOINTS_SIGNIN_CONTINUOUS] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('!Points for user sign in continuous', userpoints_translation()),
+        '#default_value' => variable_get(USERPOINTS_SIGNIN_CONTINUOUS, 0),
+        '#size'          => 5,
+        '#maxlength'     => 5,
+      );
+      $form[$group][USERPOINTS_SIGNIN_TID] = array(
+      '#type'          => 'select',
+      '#title'         => t('Category'),
+      '#default_value' => variable_get(USERPOINTS_SIGNIN_TID, 0),
+      '#options'       => userpoints_get_categories(),
+      '#description'   => t('Signin points will be assigned to this category. You can modify what categories are available by modifying the <a href="!url">Userpoints taxonomy</a>.',
+        array('!url' => url('admin/content/taxonomy/' . variable_get(USERPOINTS_CATEGORY_DEFAULT_VID, '')))),
+    );
+
+      return $form;
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function userpoints_signin_menu() {
+  $items = array();
+  $items['signin'] = array(
+    'title' => 'Userpoints Signin',
+    'page callback' => 'userpoints_signin_page',
+    'access arguments' => array('earn signin points'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ *  Function userpoints_signin_page().
+ */
+function userpoints_signin_page() {
+
+  global $user;
+  $account = $user;
+
+  // Ensure that user should earn points for this signin.
+  if (userpoints_signin_check_timeout($account->uid)) {
+    drupal_set_message('你今天已经签到过');
+    drupal_goto();
+    return;
+  }
+
+  // Delete old record and create a new one, so we can check it the next time
+  // they signin.
+  db_merge('userpoints_signin')
+    ->key(array('uid' => $account->uid))
+    ->fields(array(
+      'timestamp' => REQUEST_TIME,
+    ))
+    ->execute();
+
+  $points = 0;
+  if (userpoints_signin_check_continuous($account->uid)) {
+    $points = variable_get(USERPOINTS_SIGNIN, 0) + variable_get(USERPOINTS_SIGNIN_CONTINUOUS, 0);
+  }
+  else {
+    $points = variable_get(USERPOINTS_SIGNIN, 0);
+  }
+
+  // Award the points.
+  userpoints_userpointsapi(array(
+    'points' => $points,
+    'uid' => $account->uid,
+    'operation' => 'signin',
+    'entity_id' => $account->uid,
+    'entity_type' => 'user',
+    'tid'         => variable_get(USERPOINTS_SIGNIN_TID, 0),
+  ));
+
+  drupal_set_message('签到成功，你获得' . $points . '积分');
+  drupal_goto();
+}
+
+/**
+ * Determine if this user has earned points for signining in before.
+ *
+ * This will take into account a user defined interval, in which multiple logins
+ * are counted as a single signin, but after which the user is not counted as
+ * having earned points for a signin.
+ *
+ * @param $uid
+ *  The User ID of the user to check.
+ *
+ * @return
+ *  FALSE if the user hasn't earned points for signing in, TRUE if they have.
+ */
+function userpoints_signin_check_timeout($uid = 0) {
+
+  $now = strtotime(format_date(REQUEST_TIME, 'custom', 'Y-m-d'));
+
+  return (bool)db_query("SELECT COUNT(*) FROM {userpoints_signin}
+    WHERE uid = :uid
+    AND :now < timestamp",
+    array(':uid' => $uid, ':now' => $now))->fetchField();
+}
+
+function userpoints_signin_check_continuous($uid = 0) {
+  $now = strtotime(format_date(REQUEST_TIME, 'custom', 'Y-m-d'));
+
+  return (bool)db_query("SELECT COUNT(*) FROM {userpoints_signin}
+    WHERE uid = :uid
+    AND :now > timestamp AND :now < (timestamp + 86400)",
+    array(':uid' => $uid, ':now' => $now))->fetchField();
+}
