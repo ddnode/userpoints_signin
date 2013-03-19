@@ -18,7 +18,7 @@ define('USERPOINTS_SIGNIN_CONTINUOUS', 'userpoints_signin_continuous');
 /**
  * The variable name for the taxonomy to assign signin userpoints to.
  */
-define('USERPOINTS_SIGNIN', 'userpoints_signin_tid');
+define('USERPOINTS_SIGNIN_TID', 'userpoints_signin_tid');
 
 /**
  *  Implements hook_permission().
