@@ -6,7 +6,7 @@
  */
 
 /**
- *  Implements hook_uninstall().
+ * Implements hook_uninstall().
  */
 function userpoints_signin_uninstall() {
   db_query("DELETE FROM {variable} WHERE name LIKE 'userpoints_signin%'");
@@ -14,7 +14,7 @@ function userpoints_signin_uninstall() {
 
 
 /**
- *  Implements hook_schema().
+ * Implements hook_schema().
  */
 function userpoints_signin_schema() {
   $schema = array();
