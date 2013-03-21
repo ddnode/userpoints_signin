@@ -87,6 +87,39 @@ function userpoints_signin_menu() {
 }
 
 /**
+ * Implements hook_block_info().
+ */
+function userpoints_signin_block_info() {
+  $blocks['sign'] = array(
+    'info' => t('Sign in'),
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function userpoints_signin_block_view($delta = '') {
+  $block = array();
+
+  if ($delta == 'sign') {
+    $block['subject'] = t('Sign In');
+    $block['content'] = l(t('Sign in'), 'signin', array(
+      'query' => drupal_get_destination(),
+      'attributes' => array(
+        'class' => array(
+          'sign-in',
+          ),
+        ),
+      )
+    );
+  }
+
+  return $block;
+}
+
+/**
  *  Function userpoints_signin_page().
  */
 function userpoints_signin_page() {
