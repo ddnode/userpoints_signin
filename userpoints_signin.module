@@ -111,47 +111,33 @@ function userpoints_signin_block_info() {
 function userpoints_signin_block_view($delta = '') {
   $block = array();
   switch($delta){
-	case 'sign':
-		$block['subject'] = t('Sign In');
-		$block['content'] = l(t('Sign in'), 'signin', array(
-		  'query' => drupal_get_destination(),
-		  'attributes' => array(
-			'class' => array(
-			  'sign-in',
-			  ),
-			),
-		  )
-		);
-	break;
-	case 'sign-ajax':
-		$block['subject'] = t('Sign In By Ajax');
-		$block['content'] = l(t('Sign in By Ajax'), 'signin-ajax', array(
-		  'query' => drupal_get_destination(),
-		  'attributes' => array(
-			'class' => array(
-			  'sign-in',
-			  ),
-			'id' => 'sign-in-ajax',
-			),
-		  )
-		)."<div id='signin-ajax-msg'></div>";
-		drupal_add_js(drupal_get_path('module', 'userpoints_signin').'/js/sign-ajax.js','file');
-	break;
-  }
-
-  if ($delta == 'sign') {
+  case 'sign':
     $block['subject'] = t('Sign In');
     $block['content'] = l(t('Sign in'), 'signin', array(
+      'query' => drupal_get_destination(),
+      'attributes' => array(
+      'class' => array(
+        'sign-in',
+        ),
+      ),
+      )
+    );
+  break;
+  case 'sign-ajax':
+    $block['subject'] = t('Sign In By Ajax');
+    $block['content'] = l(t('Sign in By Ajax'), 'signin-ajax', array(
       'query' => drupal_get_destination(),
       'attributes' => array(
         'class' => array(
           'sign-in',
           ),
-        ),
-      )
-    );
+        'id' => 'sign-in-ajax',
+      ),
+    )
+    )."<div id='signin-ajax-msg'></div>";
+    drupal_add_js(drupal_get_path('module', 'userpoints_signin').'/js/sign-ajax.js','file');
+  break;
   }
-  
 
   return $block;
 }
@@ -164,8 +150,8 @@ function userpoints_signin_page_ajax() {
 
   // Ensure that user should earn points for this signin.
   if (userpoints_signin_check_timeout($account->uid)) {
-	echo json_encode(array('status'=>1,'message'=>'you have signed in today'));
-	exit;
+  echo json_encode(array('status'=>1,'message'=>'you have signed in today'));
+  exit;
   }
 
   $points = 0;
