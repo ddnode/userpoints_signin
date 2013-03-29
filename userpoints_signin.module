@@ -83,6 +83,12 @@ function userpoints_signin_menu() {
     'access arguments' => array('earn signin points'),
     'type' => MENU_CALLBACK,
   );
+  $items['signin-ajax'] = array(
+    'title' => 'Userpoints Signin Ajax',
+    'page callback' => 'userpoints_signin_page_ajax',
+    'access arguments' => array('earn signin points'),
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 
@@ -93,7 +99,9 @@ function userpoints_signin_block_info() {
   $blocks['sign'] = array(
     'info' => t('Sign in'),
   );
-
+  $blocks['sign-ajax'] = array(
+    'info' => t('Sign in ajax'),
+  );
   return $blocks;
 }
 
@@ -102,6 +110,34 @@ function userpoints_signin_block_info() {
  */
 function userpoints_signin_block_view($delta = '') {
   $block = array();
+  switch($delta){
+	case 'sign':
+		$block['subject'] = t('Sign In');
+		$block['content'] = l(t('Sign in'), 'signin', array(
+		  'query' => drupal_get_destination(),
+		  'attributes' => array(
+			'class' => array(
+			  'sign-in',
+			  ),
+			),
+		  )
+		);
+	break;
+	case 'sign-ajax':
+		$block['subject'] = t('Sign In By Ajax');
+		$block['content'] = l(t('Sign in By Ajax'), 'signin-ajax', array(
+		  'query' => drupal_get_destination(),
+		  'attributes' => array(
+			'class' => array(
+			  'sign-in',
+			  ),
+			'id' => 'sign-in-ajax',
+			),
+		  )
+		)."<div id='signin-ajax-msg'></div>";
+		drupal_add_js(drupal_get_path('module', 'userpoints_signin').'/js/sign-ajax.js','file');
+	break;
+  }
 
   if ($delta == 'sign') {
     $block['subject'] = t('Sign In');
@@ -115,8 +151,53 @@ function userpoints_signin_block_view($delta = '') {
       )
     );
   }
+  
 
   return $block;
+}
+/**
+ *  Function userpoints_signin_page_ajax().
+ */
+function userpoints_signin_page_ajax() {
+
+  $account = $GLOBALS['user'];
+
+  // Ensure that user should earn points for this signin.
+  if (userpoints_signin_check_timeout($account->uid)) {
+	echo json_encode(array('status'=>1,'message'=>'you have signed in today'));
+	exit;
+  }
+
+  $points = 0;
+
+  if (userpoints_signin_check_continuous($account->uid)) {
+    $points = variable_get(USERPOINTS_SIGNIN, 0) + variable_get(USERPOINTS_SIGNIN_CONTINUOUS, 0);
+  }
+  else {
+    $points = variable_get(USERPOINTS_SIGNIN, 0);
+  }
+
+  // Delete old record and create a new one, so we can check it the next time
+  // they signin.
+  db_merge('userpoints_signin')
+    ->key(array('uid' => $account->uid))
+    ->fields(array(
+      'timestamp' => REQUEST_TIME,
+    ))
+    ->execute();
+
+  // Award the points.
+  userpoints_userpointsapi(array(
+    'points' => $points,
+    'uid' => $account->uid,
+    'operation' => 'signin',
+    'entity_id' => $account->uid,
+    'entity_type' => 'user',
+    'tid'         => variable_get(USERPOINTS_SIGNIN_TID, 0),
+  ));
+
+  echo json_encode(array('status'=>0,'message'=>t('Sign in success, you get @points points', array('@points' => $points))));
+  exit;
 }
 
 /**
